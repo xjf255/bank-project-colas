@@ -5,12 +5,12 @@
 <?import javafx.scene.layout.VBox?>
 
 <?import javafx.scene.control.Button?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.server.HelloController">
-  <padding>
-    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-  </padding>
+<?import javafx.scene.control.TextArea?>
+<VBox spacing="20.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.server.Controller.HelloController"
+      style="-fx-background-color: #fff">
 
-  <Label fx:id="welcomeText"/>
-  <Button text="Hello!" onAction="#onHelloButtonClick"/>
+  <Label text="Logs:" textAlignment="JUSTIFY" style="-fx-font-size: 40px"/>
+  <TextArea fx:id="txt_logs" editable="false" minWidth="1200" minHeight="700" style="-fx-border-color: none; -fx-background-color: #fff; -fx-font-weight: 600;
+    -fx-font-family: monospace;"/>
 </VBox>

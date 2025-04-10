@@ -16,6 +16,7 @@
         <module>screen</module>
         <module>service</module>
         <module>teller</module>
+        <module>shared-model</module>
     </modules>
 
     <properties>

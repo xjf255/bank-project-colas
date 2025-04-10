@@ -6,6 +6,7 @@ module org.example.client {
     requires com.dlsc.formsfx;
     requires net.synedra.validatorfx;
     requires org.kordamp.bootstrapfx.core;
+    requires org.example.sharedmodel;
 
     opens org.example.client to javafx.fxml;
     exports org.example.client;
