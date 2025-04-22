@@ -7,6 +7,7 @@ module org.example.server {
     requires net.synedra.validatorfx;
     requires org.kordamp.bootstrapfx.core;
     requires org.example.sharedmodel;
+    requires javatuples;
 
     opens org.example.server to javafx.fxml;
     exports org.example.server;
