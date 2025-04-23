@@ -7,8 +7,8 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.TextArea?>
 <VBox spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.server.Controller.HelloController"
-      style="-fx-background-color: #fff">
+      fx:controller="org.example.server.Controller.Controller"
+      style="-fx-background-color: #fff; -fx-padding: 30px">
 
   <Label text="Logs:" textAlignment="JUSTIFY" style="-fx-font-size: 40px"/>
   <TextArea fx:id="txt_logs" editable="false" minWidth="1200" minHeight="700" style="-fx-border-color: none; -fx-background-color: #fff; -fx-font-weight: 600;
