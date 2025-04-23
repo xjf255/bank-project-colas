@@ -9,11 +9,11 @@ import utilities.Paths;
 
 import java.io.IOException;
 
-public class HelloApplication extends Application {
+public class CajaApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         /*
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("servicioCaja.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(CajaApplication.class.getResource("servicioCaja.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 558.0, 475.0);
         Scene scene1 = new Scene(fxmlLoader.load());
         stage.setTitle("Servicio Caja");

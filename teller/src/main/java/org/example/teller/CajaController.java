@@ -5,7 +5,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 
-public class HelloController {
+public class CajaController {
     @FXML
     private Button bttnNextTurn;
 
