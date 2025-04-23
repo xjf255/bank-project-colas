@@ -1,16 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
 
-<?import javafx.scene.control.Button?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.screen.HelloController">
-  <padding>
-    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-  </padding>
+<StackPane prefHeight="768.0" prefWidth="1366.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.screen.HelloController">
 
-  <Label fx:id="welcomeText"/>
-  <Button text="Hello!" onAction="#onHelloButtonClick"/>
-</VBox>
+
+  <ImageView fx:id="backgroundImage" fitHeight="768.0" fitWidth="1366.0" preserveRatio="false">
+    <image>
+      <Image url="@imag/Group.png" />
+    </image>
+  </ImageView>
+
+
+  <Pane fx:id="overlayPane" prefHeight="817.0" prefWidth="1002.0">
+
+
+    <Label fx:id="labelLibre1" layoutX="204.0" layoutY="117.0" prefHeight="88.0" prefWidth="385.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 1" />
+    <Label fx:id="labelLibre2" layoutX="204.0" layoutY="222.0" prefHeight="88.0" prefWidth="334.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 2" />
+    <Label fx:id="labelLibre3" layoutX="204.0" layoutY="340.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 3" />
+    <Label fx:id="labelLibre4" layoutX="207.0" layoutY="444.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 4" />
+    <Label fx:id="labelLibre5" layoutX="207.0" layoutY="551.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 5" />
+    <Label fx:id="labelLibre6" layoutX="204.0" layoutY="658.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 6" />
+    <Label fx:id="labelLibre7" layoutX="874.0" layoutY="117.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 7" />
+    <Label fx:id="labelLibre8" layoutX="874.0" layoutY="222.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 8" />
+    <Label fx:id="labelLibre9" layoutX="874.0" layoutY="340.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 9" />
+    <Label fx:id="labelLibre10" layoutX="874.0" layoutY="444.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 10" />
+    <Label fx:id="labelLibre11" layoutX="858.0" layoutY="551.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 11" />
+    <Label fx:id="labelLibre12" layoutX="858.0" layoutY="658.0" style="-fx-text-fill: white; -fx-font-size: 60px;" text="Texto libre 12" />
+
+  </Pane>
+
+</StackPane>
