@@ -19,5 +19,6 @@
       <TextField fx:id="txtfNumCuenta" layoutX="278.0" layoutY="203.0" />
       <TextField fx:id="txtfMontoAcreditar" layoutX="278.0" layoutY="237.0" />
       <Button fx:id="bttnRealizar" layoutX="271.0" layoutY="333.0" mnemonicParsing="false" onAction="#realizarDeposito" text="Realizar" />
+      <Label fx:id="lblStatus" layoutX="14.0" layoutY="435.0" text="..." />
    </children>
 </AnchorPane>
