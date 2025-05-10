@@ -26,7 +26,7 @@ public class Controller {
             Properties properties = propertiesInfo.getProperties();
             int port = Integer.parseInt(properties.getProperty("server.port"));
             InetAddress localhost = InetAddress.getLocalHost();
-            Logs connectionLogs = new Logs(localhost.getHostAddress(), port);
+            Logs connectionLogs = new Logs("25.53.112.39", port);
             List<String> logs = connectionLogs.start();
             writeLogs(logs);
         } catch (UnknownHostException e) {

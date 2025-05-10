@@ -1,16 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<?import javafx.scene.control.Button?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.client.HelloController">
-  <padding>
-    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-  </padding>
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="org.example.client.HelloController"
+      spacing="20"
+      alignment="CENTER"
+      style="-fx-padding: 30; -fx-background-color: #f4f4f4;">
 
-  <Label fx:id="welcomeText"/>
-  <Button text="Hello!" onAction="#onHelloButtonClick"/>
+    <Label fx:id="welcomeLabel" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+
+    <VBox spacing="15" alignment="CENTER">
+        <Button fx:id="cajaButton" onAction="#handleCaja"/>
+        <Button fx:id="servicioButton" onAction="#handleServicio"/>
+    </VBox>
+
+    <Separator style="-fx-padding: 10 0 10 0;"/>
+
+    <Label text="Último Ticket Generado:" style="-fx-font-weight: bold;"/>
+    <TextArea fx:id="ticketArea" prefWidth="300" prefHeight="200"
+              style="-fx-font-family: monospace; -fx-font-size: 12px;"/>
 </VBox>
