@@ -7,20 +7,14 @@
 <VBox xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="org.example.client.HelloController"
-      spacing="20"
+      spacing="30"
       alignment="CENTER"
       style="-fx-padding: 30; -fx-background-color: #f4f4f4;">
 
     <Label fx:id="welcomeLabel" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
 
-    <VBox spacing="15" alignment="CENTER">
+    <HBox spacing="50" alignment="CENTER">
         <Button fx:id="cajaButton" onAction="#handleCaja"/>
         <Button fx:id="servicioButton" onAction="#handleServicio"/>
-    </VBox>
-
-    <Separator style="-fx-padding: 10 0 10 0;"/>
-
-    <Label text="Último Ticket Generado:" style="-fx-font-weight: bold;"/>
-    <TextArea fx:id="ticketArea" prefWidth="300" prefHeight="200"
-              style="-fx-font-family: monospace; -fx-font-size: 12px;"/>
+    </HBox>
 </VBox>
