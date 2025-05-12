@@ -55,7 +55,7 @@ public class HelloController {
         try {
             PropertiesInfo propertiesInfo = new PropertiesInfo();
             Properties properties = propertiesInfo.getProperties();
-            serverIp = properties.getProperty("server.ip", "25.53.112.39"); // IP por defecto si no se encuentra
+            serverIp = properties.getProperty("server.ip", "127.0.0.1"); // IP por defecto si no se encuentra
             serverPort = Integer.parseInt(properties.getProperty("server.port", "12345")); // Puerto por defecto
             System.out.println("[CONFIG] Servidor configurado - IP: " + serverIp + ", Puerto: " + serverPort);
         } catch (Exception e) {
