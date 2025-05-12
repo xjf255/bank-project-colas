@@ -9,10 +9,10 @@ import javafx.scene.control.TextField;
 import org.example.shared.TicketTypes;
 
 import org.example.shared.*;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
+
+import java.io.*;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.Properties;
@@ -31,9 +31,11 @@ public class CajaController implements Initializable {
 
         loadConfigServer();
         connectToServer();
+        /*
         if(socket != null){
             socket.starListening();
         }
+        //*/
     }
 
     public void loadConfigServer(){
@@ -55,6 +57,7 @@ public class CajaController implements Initializable {
             socket.connect();
             bttnRealizar.setDisable(false);
             bttnNextTurn.setDisable(false);
+
             System.out.println("[INF003]Server connect successful");
         } catch (Exception e) {
             lblStatus.setText("⛔Sin Conexión");
@@ -98,18 +101,21 @@ public class CajaController implements Initializable {
         ticket.setState(true);
         ticket.setOperator("CajaFabian");
         lblStatus.setText("TicketNow: "+ticket);
+
+        socket.sendTicket(this.ticket);
     }
 
     @FXML
     void siguienteTurno(ActionEvent event) {
         //Se envia ticket sin valor para que el servidor me mande un ticket de la cola
+        System.out.println("[Debug]TicketOrigin:"+this.ticket);
         Ticket needTicket = new Ticket(null, TicketTypes.CAJA);
         socket.sendTicket(needTicket);
         System.out.println("[INF004]Data send:"+needTicket.toString());
 
         //Recibo el siguiente ticket de la cola que tiene el servidor
         Ticket newTicket = socket.receiveTicket();
-        //System.out.println("[INF005]Data received:"+newTicket.toString());
+        System.out.println("[INF005]Data received:"+newTicket.toString());
         this.ticket = newTicket;
         lblStatus.setText("TicketNow:"+newTicket);
     }

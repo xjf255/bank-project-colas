@@ -1,5 +1,6 @@
 package org.example.teller;
 
+import org.controlsfx.control.tableview2.filter.filtereditor.SouthFilter;
 import org.example.shared.*;
 
 import java.io.IOException;
@@ -7,6 +8,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 public class SocketCaja {
     private String host;
@@ -27,6 +30,13 @@ public class SocketCaja {
             out = new ObjectOutputStream(sc.getOutputStream());
             out.flush();
             in = new ObjectInputStream(sc.getInputStream());
+
+            InfoData dataCaja = new InfoData();
+            dataCaja.setType(ClientTypes.CAJA);
+            dataCaja.setName("Caja_Fabian");
+            dataCaja.setIp(InetAddress.getLocalHost().getHostAddress());
+            out.writeObject(dataCaja);
+            out.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -34,9 +44,11 @@ public class SocketCaja {
     public void sendTicket(Ticket ticket){
         try {
             InfoData dataCaja = new InfoData();
+            /*
             dataCaja.setName("Caja_Fabian");
             dataCaja.setType(ClientTypes.CAJA);
             dataCaja.setIp(InetAddress.getLocalHost().getHostAddress());//Manda mi direccion IP local
+             */
             dataCaja.setTickets(ticket);
             out.writeObject(dataCaja);
             out.flush();
@@ -76,15 +88,17 @@ public class SocketCaja {
 
     public void starListening(){
         Thread listenerThread = new Thread(()->{
-            try {
-                while(!sc.isClosed()){
+            while (!sc.isClosed()){
+                try {
                     InfoData data = (InfoData) in.readObject();
                     Ticket ticket = data.getTickets();
                     System.out.println("[InfSocket002]Listener active");
                     System.out.println("[InfSocket003]Ticket recibido:"+ticket.toString());
+                }catch (SocketTimeoutException e){
+                    System.out.println("[ErrorSocket002]Error:"+e.getMessage());
+                } catch (Exception e) {
+                    System.out.println("[ErrorSocket001]Error:"+e.getMessage());
                 }
-            } catch (Exception e) {
-                System.out.println("[ErrorSocket001]Error:"+e.getMessage());
             }
         });
         listenerThread.setDaemon(true);
