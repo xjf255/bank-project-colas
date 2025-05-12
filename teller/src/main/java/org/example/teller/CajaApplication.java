@@ -11,7 +11,7 @@ import java.io.IOException;
 
 public class CajaApplication extends Application {
     @Override
-    public void start(Stage stage) throws IOException {
+    public void start(Stage stage) throws Exception {
         /*
         FXMLLoader fxmlLoader = new FXMLLoader(CajaApplication.class.getResource("servicioCaja.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 558.0, 475.0);

@@ -1,10 +1,11 @@
 package org.example.teller;
 
-import utilities.Ticket;
+import org.example.shared.*;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 
 public class SocketCaja {
@@ -22,7 +23,9 @@ public class SocketCaja {
     public void connect(){
         try {
             sc = new Socket(host, port);
+            sc.setSoTimeout(5000); //Manda un SocketTimeException de 5 segundos
             out = new ObjectOutputStream(sc.getOutputStream());
+            out.flush();
             in = new ObjectInputStream(sc.getInputStream());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -30,7 +33,13 @@ public class SocketCaja {
     }
     public void sendTicket(Ticket ticket){
         try {
-            out.writeObject(ticket);
+            InfoData dataCaja = new InfoData();
+            dataCaja.setName("Caja_Fabian");
+            dataCaja.setType(ClientTypes.CAJA);
+            dataCaja.setIp(InetAddress.getLocalHost().getHostAddress());//Manda mi direccion IP local
+            dataCaja.setTickets(ticket);
+            out.writeObject(dataCaja);
+            out.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -38,7 +47,8 @@ public class SocketCaja {
 
     public Ticket receiveTicket(){
         try {
-            return (Ticket) in.readObject();
+            InfoData receivedData = (InfoData) in.readObject();
+            return receivedData.getTickets();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -64,4 +74,20 @@ public class SocketCaja {
         }
     }
 
+    public void starListening(){
+        Thread listenerThread = new Thread(()->{
+            try {
+                while(!sc.isClosed()){
+                    InfoData data = (InfoData) in.readObject();
+                    Ticket ticket = data.getTickets();
+                    System.out.println("[InfSocket002]Listener active");
+                    System.out.println("[InfSocket003]Ticket recibido:"+ticket.toString());
+                }
+            } catch (Exception e) {
+                System.out.println("[ErrorSocket001]Error:"+e.getMessage());
+            }
+        });
+        listenerThread.setDaemon(true);
+        listenerThread.start();
+    }
 }

@@ -6,51 +6,59 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
 import org.example.shared.TicketTypes;
-import utilities.Ticket;
 
+import org.example.shared.*;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URL;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Properties;
 import java.util.ResourceBundle;
 
 public class CajaController implements Initializable {
-    private Ticket ticket= new Ticket(null, TicketTypes.CAJA);
+    private Ticket ticket = new Ticket(null, TicketTypes.CAJA);
     private SocketCaja socket;
+    private String ipServer;
+    private Integer portServer;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle){
         bttnRealizar.setDisable(true);
         bttnNextTurn.setDisable(true);
 
-        TextInputDialog ipDialog = new TextInputDialog("25.53.36.80");
-        ipDialog.setTitle("Conexión al Servidor");
-        ipDialog.setHeaderText("Ingrese la IP del Servidor");
-        Optional<String> ipResult = ipDialog.showAndWait();
+        loadConfigServer();
+        connectToServer();
+        if(socket != null){
+            socket.starListening();
+        }
+    }
 
-        TextInputDialog portDialog = new TextInputDialog("5000");
-        portDialog.setTitle("Conexión al Servidor");
-        portDialog.setHeaderText("Ingrese el Puerto del Servidor");
-        Optional<String> portResult = portDialog.showAndWait();
+    public void loadConfigServer(){
+        try {
+            PropertiesInfo propertiesInfo = new PropertiesInfo();
+            Properties appProperties = propertiesInfo.getProperties();
+            ipServer = appProperties.getProperty("server.ip","127.0.0.1");
+            portServer = Integer.parseInt(appProperties.getProperty("server.port","12345"));
+            System.out.println("[INF001]Load server config: ip="+ipServer+" port="+portServer);
+        } catch (Exception e) {
+            System.out.println("[E001]Load error: ip="+ipServer+" port="+portServer+". More:"+e.getMessage());
+        }
+    }
 
-        if(ipResult.isPresent() && portResult.isPresent()){
-            try {
-                String host = ipResult.get();
-                Integer port = Integer.parseInt(portResult.get());
-                socket = new SocketCaja(host, port);
-                socket.connect();
-                bttnRealizar.setDisable(false);
-                bttnNextTurn.setDisable(false);
-            } catch (Exception e) {
-                lblStatus.setText("⛔Conexión cancelada");
-                System.out.println("Error de conexión:"+e.getMessage());
-            }
-        }else{
-            lblStatus.setText("⛔Conexión cancelada");
+    public void connectToServer(){
+        System.out.println("[INF002]Connecting to server with ip="+ipServer+" port="+portServer);
+        try {
+            socket = new SocketCaja(ipServer, portServer);
+            socket.connect();
+            bttnRealizar.setDisable(false);
+            bttnNextTurn.setDisable(false);
+            System.out.println("[INF003]Server connect successful");
+        } catch (Exception e) {
+            lblStatus.setText("⛔Sin Conexión");
+            System.out.println("[E002]Connection error:"+e.getMessage());
         }
     }
 
@@ -82,6 +90,7 @@ public class CajaController implements Initializable {
             save.newLine();
         }catch (IOException e){
             lblStatus.setText("Error: "+e.getMessage());
+            socket.closeConnection();
         }
         txtfNumCuenta.setText("");
         txtfMontoAcreditar.setText("");
@@ -96,9 +105,11 @@ public class CajaController implements Initializable {
         //Se envia ticket sin valor para que el servidor me mande un ticket de la cola
         Ticket needTicket = new Ticket(null, TicketTypes.CAJA);
         socket.sendTicket(needTicket);
+        System.out.println("[INF004]Data send:"+needTicket.toString());
 
         //Recibo el siguiente ticket de la cola que tiene el servidor
         Ticket newTicket = socket.receiveTicket();
+        //System.out.println("[INF005]Data received:"+newTicket.toString());
         this.ticket = newTicket;
         lblStatus.setText("TicketNow:"+newTicket);
     }
