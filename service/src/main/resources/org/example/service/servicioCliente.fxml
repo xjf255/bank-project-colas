@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17.0.2" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.example.service.ServicioClienteController">
+
+  <VBox spacing="20" alignment="CENTER" AnchorPane.topAnchor="20" AnchorPane.rightAnchor="20"
+        AnchorPane.bottomAnchor="20" AnchorPane.leftAnchor="20">
+
+    <Label text="Módulo de Servicio al Cliente" style="-fx-font-weight: bold; -fx-font-size: 18;"/>
+
+    <Label fx:id="lblStatus" text="Estado: No conectado"/>
+    <Label fx:id="lblClienteActual" text="Atendiendo: Ninguno" style="-fx-font-weight: bold;"/>
+
+    <HBox spacing="10" alignment="CENTER">
+      <Button fx:id="bttnNextTurn" text="Siguiente Turno" onAction="#siguienteTurno"
+              prefWidth="150" style="-fx-base: #4CAF50;"/>
+      <Button fx:id="bttnFinalizar" text="Finalizar Servicio" onAction="#finalizarServicio"
+              prefWidth="150" style="-fx-base: #F44336;" disable="true"/>
+    </HBox>
+
+    <Button text="Crear Nueva Cuenta" onAction="#crearNuevaCuenta"
+            prefWidth="200" style="-fx-base: #2196F3;"/>
+  </VBox>
+</AnchorPane>
