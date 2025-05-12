@@ -5,5 +5,9 @@ public enum ClientTypes {
     MONITOR,
     CAJA,
     SERVICIO,
-    LOGS
+    LOGS,
+    //add
+    GENERATOR,    // Para la aplicación que genera tickets
+    OPERATOR,     // Para la aplicación que usan los operadores de caja/servicio
+    SERVER
 }
