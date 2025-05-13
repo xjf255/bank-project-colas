@@ -30,21 +30,42 @@ public class HelloController {
     @FXML private Label welcomeLabel;
     @FXML private Button cajaButton;
     @FXML private Button servicioButton;
-    @FXML private Label statusLabel;
+    @FXML private TextArea ticketArea; // Para mostrar el ticket generado localmente
+    @FXML private Label statusLabel; // NUEVO: Para mostrar el estado de la conexión
 
     // Variables de Red
     private Socket socket;
     private ObjectOutputStream outToServer;
-    private ObjectInputStream inFromServer;
+    private ObjectInputStream inFromServer; // Opcional para este cliente, pero bueno para futuras respuestas del servidor
     private String serverIp;
     private int serverPort;
     private volatile boolean isConnected = false;
-    private String clientName = "TicketGenerator_01";
+    private String clientName = "TicketGenerator_01"; // Nombre para este cliente generador
 
     @FXML
     public void initialize() {
-        welcomeLabel.setText("BIENVENIDO");
-        statusLabel.setText("Estado: Desconectado");
+        welcomeLabel.setText("SISTEMA DE GESTIÓN DE TICKETS");
+        cajaButton.setText("Generar Ticket de Caja");
+        servicioButton.setText("Generar Ticket de Servicio");
+
+        String buttonStyle = "-fx-font-size: 14px; -fx-pref-width: 250px; -fx-pref-height: 40px;";
+        cajaButton.setStyle(buttonStyle + "-fx-background-color: #3498db; -fx-text-fill: white;");
+        servicioButton.setStyle(buttonStyle + "-fx-background-color: #2ecc71; -fx-text-fill: white;");
+
+        ticketArea.setEditable(false);
+        ticketArea.setWrapText(true);
+
+        // Crear el statusLabel si no está en el FXML (mejor añadirlo al FXML)
+        if (statusLabel == null) {
+            statusLabel = new Label("Estado: Desconectado");
+            // Si ticketContainer existe y es un VBox, puedes añadirlo ahí.
+            // O necesitas un placeholder en tu FXML.
+            // Por ahora, solo lo inicializamos.
+        } else {
+            statusLabel.setText("Estado: Desconectado");
+        }
+
+
         loadServerConfigAndConnect();
     }
 
@@ -52,14 +73,18 @@ public class HelloController {
         try {
             PropertiesInfo propertiesInfo = new PropertiesInfo();
             Properties properties = propertiesInfo.getProperties();
-            serverIp = properties.getProperty("server.ip", "25.53.112.39");
-            serverPort = Integer.parseInt(properties.getProperty("server.port", "12345"));
+            serverIp = properties.getProperty("server.ip", "127.0.0.1"); // IP del servidor, localhost por defecto
+            serverPort = Integer.parseInt(properties.getProperty("server.port", "12345")); // Puerto del servidor
+
             connectToServer();
+
         } catch (Exception e) {
             System.err.println("CLIENT_GENERATOR: Error al cargar propiedades del servidor: " + e.getMessage());
             updateStatus("Error de configuración", true);
-            serverIp = "25.53.112.39"; // Fallback
-            serverPort = 12345;      // Fallback
+            // Usar valores por defecto o mostrar error en UI
+            serverIp = "127.0.0.1"; // IP de respaldo
+            serverPort = 12345;    // Puerto de respaldo
+            // Podrías mostrar un mensaje más prominente en la UI aquí
         }
     }
 
@@ -67,7 +92,9 @@ public class HelloController {
         try {
             socket = new Socket(serverIp, serverPort);
             outToServer = new ObjectOutputStream(socket.getOutputStream());
+            // inFromServer = new ObjectInputStream(socket.getInputStream()); // Descomentar si esperas respuestas
 
+            // Enviar mensaje de registro como GENERATOR
             InfoData registrationMsg = new InfoData();
             registrationMsg.setType(ClientTypes.GENERATOR);
             registrationMsg.setName(clientName);
@@ -83,64 +110,49 @@ public class HelloController {
             System.out.println("CLIENT_GENERATOR: Conectado al servidor y registrado como GENERATOR.");
             updateStatus("Conectado", false);
 
+            // (Opcional) Iniciar un hilo para escuchar respuestas del servidor si es necesario
+            // Thread serverListenerThread = new Thread(this::listenToServer);
+            // serverListenerThread.setDaemon(true);
+            // serverListenerThread.start();
+
         } catch (IOException e) {
             System.err.println("CLIENT_GENERATOR: Error al conectar con el servidor: " + e.getMessage());
             isConnected = false;
             updateStatus("Error de conexión", true);
+            // Aquí podrías intentar reconectar o mostrar un error persistente en la UI
         }
     }
 
+
     @FXML
     private void handleCaja() {
-        String ticketId = String.format("C%03d", contadorCaja);
+        String ticketId = String.format("C-%03d", contadorCaja);
         Ticket nuevoTicket = new Ticket(ticketId, TicketTypes.CAJA);
-        // numeroCaja is 1-5, always 1 digit.
+        // El timestamp se establece automáticamente en el constructor de Ticket
+
         String ticketFormateado = generarFormatoTicket(nuevoTicket, "CAJA", (int)(Math.random() * 5) + 1, -1);
-        mostrarTicket(ticketFormateado, "CAJA");
+        mostrarTicketLocalmente(ticketFormateado, "CAJA");
         guardarTicketEnArchivo(ticketFormateado, "caja_" + ticketId);
+
+        // Incrementar después de usar el valor actual para el ID
         contadorCaja++;
+
         enviarTicketAlServidor(nuevoTicket);
     }
 
     @FXML
     private void handleServicio() {
-        String ticketId = String.format("S%03d", contadorServicio);
+        String ticketId = String.format("S-%03d", contadorServicio);
         Ticket nuevoTicket = new Ticket(ticketId, TicketTypes.SERVICIO);
-        // tiempoEstimado is 5-19, can be 1 or 2 digits. %2d handles this.
+
         String ticketFormateado = generarFormatoTicket(nuevoTicket, "SERVICIO", -1, (int)(Math.random() * 15) + 5);
-        mostrarTicket(ticketFormateado, "SERVICIO");
+        mostrarTicketLocalmente(ticketFormateado, "SERVICIO");
         guardarTicketEnArchivo(ticketFormateado, "servicio_" + ticketId);
+
+        // Incrementar después de usar el valor actual para el ID
         contadorServicio++;
+
         enviarTicketAlServidor(nuevoTicket);
-    }
-
-    private void mostrarTicket(String ticketTexto, String tipo) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Ticket Generado - " + tipo);
-        alert.setHeaderText("Su ticket ha sido generado con éxito");
-
-        TextArea ticketPreview = new TextArea(ticketTexto);
-        ticketPreview.setEditable(false);
-        ticketPreview.setStyle("-fx-font-family: monospace; -fx-font-size: 12px;");
-
-        // --- MODIFICATION START ---
-        // Set preferred row and column count for the TextArea
-        // Ticket has 13 lines. Max width is ~33 characters.
-        ticketPreview.setPrefRowCount(14);  // 13 lines of text + 1 buffer row
-        ticketPreview.setPrefColumnCount(35); // Max 33 characters + 2 buffer columns
-
-        alert.getDialogPane().setContent(ticketPreview);
-
-        // Remove the fixed size for the dialog pane to allow auto-sizing.
-        // alert.getDialogPane().setPrefSize(400,300); // This line is removed/commented
-        // --- MODIFICATION END ---
-
-        // The dialog will now attempt to size itself to fit the TextArea's preferred size.
-        alert.show();
-
-        PauseTransition delay = new PauseTransition(Duration.seconds(10));
-        delay.setOnFinished(event -> alert.close());
-        delay.play();
     }
 
     private void enviarTicketAlServidor(Ticket ticket) {
@@ -148,14 +160,15 @@ public class HelloController {
             System.err.println("CLIENT_GENERATOR: No conectado al servidor. No se puede enviar el ticket.");
             mostrarError("No conectado al servidor. Intente reiniciar la aplicación o verifique la conexión.");
             updateStatus("Desconectado - No se pudo enviar", true);
+            // Podrías intentar reconectar aquí: connectToServer();
             return;
         }
 
         try {
             InfoData dataParaServidor = new InfoData();
-            dataParaServidor.setType(ClientTypes.GENERATOR);
+            dataParaServidor.setType(ClientTypes.GENERATOR); // El tipo de este cliente
             dataParaServidor.setName(clientName);
-            dataParaServidor.setTickets(ticket);
+            dataParaServidor.setTickets(ticket); // Enviamos el objeto Ticket
 
             outToServer.writeObject(dataParaServidor);
             outToServer.flush();
@@ -164,31 +177,31 @@ public class HelloController {
 
         } catch (IOException e) {
             System.err.println("CLIENT_GENERATOR: Error al enviar ticket al servidor: " + e.getMessage());
-            isConnected = false;
+            isConnected = false; // Marcar como desconectado en caso de error de envío
             updateStatus("Error de envío", true);
             mostrarError("Error al enviar ticket: " + e.getMessage());
-            closeNetworkResources();
+            // Considerar cerrar y reabrir conexión o manejar el error de forma más robusta
+            closeNetworkResources(); // Cierra para un posible intento de reconexión futuro
         }
     }
 
+
+    // Modificado para tomar un objeto Ticket y detalles adicionales
     private String generarFormatoTicket(Ticket ticket, String tipoDisplay, int numeroCaja, int tiempoEstimado) {
-        LocalDateTime ahora = ticket.getTimestamp();
+        LocalDateTime ahora = ticket.getTimestamp(); // Usar el timestamp del objeto Ticket
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
-        // Max width of these lines is 33 characters.
-        // Example: "║  la caja número 5             ║"
-        // Example: "║  Tiempo estimado: 15 min      ║"
         if (tipoDisplay.equals("CAJA")) {
             return String.format(
-                    "╔══════════════════════════════╗\n" + // Length 30
-                            "║         TICKET DE CAJA       ║\n" + // Length 30
-                            "╠══════════════════════════════╣\n" + // Length 30
-                            "║ Número:%20s  ║\n" + // Formats to 31 chars
-                            "║ Fecha: %-20s  ║\n" + // Formats to 31 chars
+                    "╔══════════════════════════════╗\n" +
+                            "║       TICKET DE CAJA        ║\n" +
+                            "╠══════════════════════════════╣\n" +
+                            "║ Número: %-20s ║\n" + // Ajustado para el ID
+                            "║ Fecha: %-20s ║\n" +
                             "╠══════════════════════════════╣\n" +
                             "║                              ║\n" +
                             "║  Por favor acérquese a       ║\n" +
-                            "║  la caja número %d            ║\n" + // Formats to 33 chars if %d is 1 digit
+                            "║  la caja número %d           ║\n" +
                             "║                              ║\n" +
                             "║  Gracias por su preferencia  ║\n" +
                             "║                              ║\n" +
@@ -199,17 +212,17 @@ public class HelloController {
             );
         } else { // SERVICIO
             return String.format(
-                    "╔══════════════════════════════╗\n" + // Length 30
-                            "║    TICKET SERVICIO CLIENTE   ║\n" + // Length 30
-                            "╠══════════════════════════════╣\n" + // Length 30
-                            "║ Número: %20s ║\n" + // Formats to 31 chars
-                            "║ Fecha: %-20s  ║\n" + // Formats to 31 chars
+                    "╔══════════════════════════════╗\n" +
+                            "║   TICKET SERVICIO CLIENTE   ║\n" +
+                            "╠══════════════════════════════╣\n" +
+                            "║ Número: %-20s ║\n" + // Ajustado para el ID
+                            "║ Fecha: %-20s ║\n" +
                             "╠══════════════════════════════╣\n" +
                             "║                              ║\n" +
                             "║  Espere su turno en la       ║\n" +
                             "║  zona de espera              ║\n" +
                             "║                              ║\n" +
-                            "║  Tiempo estimado: %2d min     ║\n" + // Formats to 33 chars
+                            "║  Tiempo estimado: %2d min    ║\n" + // Ajustado para tiempo
                             "║                              ║\n" +
                             "╚══════════════════════════════╝\n",
                     ticket.getValue(),
@@ -217,6 +230,29 @@ public class HelloController {
                     tiempoEstimado
             );
         }
+    }
+
+    // Renombrado para claridad
+    private void mostrarTicketLocalmente(String ticketTexto, String tipo) {
+        ticketArea.setText(ticketTexto);
+
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Ticket Generado - " + tipo);
+        alert.setHeaderText("Su ticket ha sido generado con éxito (localmente)");
+
+        TextArea ticketPreview = new TextArea(ticketTexto);
+        ticketPreview.setEditable(false);
+        ticketPreview.setStyle("-fx-font-family: monospace; -fx-font-size: 12px;");
+        //ticketPreview.setPrefSize(380, 250); // Ajustar tamaño si es necesario
+
+        alert.getDialogPane().setContent(ticketPreview);
+        alert.getDialogPane().setPrefSize(400,300); // Para que quepa mejor
+
+        alert.show();
+
+        PauseTransition delay = new PauseTransition(Duration.seconds(10));
+        delay.setOnFinished(event -> alert.close());
+        delay.play();
     }
 
     private void mostrarError(String mensaje) {
@@ -228,6 +264,7 @@ public class HelloController {
     }
 
     private void guardarTicketEnArchivo(String ticketTexto, String nombreBase) {
+        // El nombre del archivo ahora es más específico con el ID del ticket
         String nombreArchivo = "ticket_" + nombreBase + "_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".txt";
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(nombreArchivo))) {
@@ -240,14 +277,20 @@ public class HelloController {
     }
 
     private void updateStatus(String message, boolean isError) {
-        statusLabel.setText("Estado: " + message);
-        if (isError) {
-            statusLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
-        } else {
-            statusLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+        if (statusLabel != null) {
+            statusLabel.setText("Estado: " + message);
+            if (isError) {
+                statusLabel.setStyle("-fx-text-fill: red;");
+            } else {
+                statusLabel.setStyle("-fx-text-fill: green;");
+            }
         }
     }
 
+
+
+
+    // Método para cerrar recursos de red (importante)
     public void stop() {
         System.out.println("CLIENT_GENERATOR: Deteniendo cliente generador...");
         isConnected = false;
