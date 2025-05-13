@@ -1,6 +1,5 @@
 package org.example.teller;
 
-import org.controlsfx.control.tableview2.filter.filtereditor.SouthFilter;
 import org.example.shared.*;
 
 import java.io.IOException;
@@ -8,8 +7,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.Properties;
 
 public class SocketCaja {
     private String host;
@@ -27,13 +26,16 @@ public class SocketCaja {
         try {
             sc = new Socket(host, port);
             sc.setSoTimeout(5000); //Manda un SocketTimeException de 5 segundos
+            in = new ObjectInputStream(sc.getInputStream());
             out = new ObjectOutputStream(sc.getOutputStream());
             out.flush();
-            in = new ObjectInputStream(sc.getInputStream());
+
+            PropertiesInfo propertiesInfo = new PropertiesInfo();
+            Properties appProperties = propertiesInfo.getProperties();
 
             InfoData dataCaja = new InfoData();
             dataCaja.setType(ClientTypes.CAJA);
-            dataCaja.setName("Caja_Fabian");
+            dataCaja.setName(appProperties.getProperty("operator.name","FabianPapasote"));
             dataCaja.setIp(InetAddress.getLocalHost().getHostAddress());
             out.writeObject(dataCaja);
             out.flush();
@@ -41,15 +43,26 @@ public class SocketCaja {
             throw new RuntimeException(e);
         }
     }
+
+    public void requestTicket(){
+        try {
+            InfoData request = new InfoData();
+            request.setType(ClientTypes.CAJA);
+            request.setTickets(null);
+            request.setMessage("[DebugSocket04]I need a Ticket");
+            out.writeObject(request);
+            out.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void sendTicket(Ticket ticket){
         try {
             InfoData dataCaja = new InfoData();
-            /*
-            dataCaja.setName("Caja_Fabian");
-            dataCaja.setType(ClientTypes.CAJA);
-            dataCaja.setIp(InetAddress.getLocalHost().getHostAddress());//Manda mi direccion IP local
-             */
+            dataCaja.setType(ClientTypes.CAJA); //El server necesita que le enviemos que tipo de
             dataCaja.setTickets(ticket);
+            //dataCaja.setMessage("[DebugSocket03]I need a new Ticket Daddy!!");
             out.writeObject(dataCaja);
             out.flush();
         } catch (IOException e) {
@@ -60,9 +73,11 @@ public class SocketCaja {
     public Ticket receiveTicket(){
         try {
             InfoData receivedData = (InfoData) in.readObject();
+            //System.out.println("[DebugSocket001]Objeto recibido del server:"+ receivedData);
+            //System.out.println("[DebugSocket002]Data ticket:"+ receivedData.getTickets());
             return receivedData.getTickets();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return new Ticket("ErrorTicketSocket",TicketTypes.CAJA);
         }
     }
 

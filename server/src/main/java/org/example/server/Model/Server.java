@@ -294,7 +294,7 @@ public class Server {
         }
 
         Ticket ticketDataFromClient = infoFromClient.getTickets();
-        if (ticketDataFromClient != null) {
+        if (ticketDataFromClient != null && ticketDataFromClient.getValue() != null) {
             if (infoFromClient.getType() == ClientTypes.CAJA || infoFromClient.getType() == ClientTypes.SERVICIO) {
                 boolean actionSuccess = processOperatorTicketAction(infoFromClient, ticketDataFromClient, clientNameContext);
                 if (actionSuccess) {
@@ -320,6 +320,27 @@ public class Server {
                 broadcastTicketUpdate();
                 return responseToClient;
             }
+        }
+        //Se recibe un ticket null con ClientType CAJA y eso hace que se envie un ticket a caja
+        if (ticketDataFromClient == null && infoFromClient.getType() == ClientTypes.CAJA) {
+            Ticket ticketToServe = null;
+            synchronized (tellerList) {
+                if (!tellerList.isEmpty()) {
+                    ticketToServe = tellerList.remove(0);
+                }
+            }
+
+            if (ticketToServe != null) {
+                responseToClient.setTickets(ticketToServe);
+                responseToClient.setMessage("Ticket '" + ticketToServe.getValue() + "' asignado a '" + clientNameContext + "'.");
+                addLog("Ticket '" + ticketToServe.getValue() + "' asignado a '" + clientNameContext + "'.");
+            } else {
+                responseToClient.setMessage("No hay tickets en cola.");
+            }
+
+            broadcastTicketUpdate();
+            //System.out.println("****************"+responseToClient.getTickets());
+            return responseToClient;
         }
 
         responseToClient.setMessage("Solicitud recibida y procesada genéricamente para '" + clientNameContext + "'.");
