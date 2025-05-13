@@ -29,8 +29,6 @@ import java.util.ResourceBundle;
 public class ServicioClienteController implements Initializable {
 
     private Ticket ticketActual = null;
-
-    // Miembros de red gestionados directamente
     private Socket socket;
     private ObjectOutputStream outToServer;
     private ObjectInputStream inFromServer;
@@ -38,7 +36,7 @@ public class ServicioClienteController implements Initializable {
     private String ipServer;
     private Integer portServer;
     private final String LOG_FILE = "servicioClienteLogs.txt";
-    private final String OPERATOR_NAME = "Servicio_Default"; // Nombre específico para servicio
+    private final String OPERATOR_NAME = "Servicio A"; // Ejemplo: Esta instancia es "Servicio A"
 
     @FXML private Button bttnCrearCuenta;
     @FXML private Button bttnNextTurn;
@@ -53,25 +51,22 @@ public class ServicioClienteController implements Initializable {
         bttnCrearCuenta.setDisable(true);
         bttnNextTurn.setDisable(true);
         lblTurnoActual.setText("N/A");
-
         loadConfigServer();
         connectToServer();
     }
 
     public void loadConfigServer() {
-        // Usar directamente los valores por defecto
-        ipServer = "25.53.112.39"; // IP de tu configuración previa
+        ipServer = "localhost"; // Cambia si tu servidor está en otra IP
         portServer = 5000;
-        System.out.println("[ServicioClienteController INF000] Usando configuración fija/por defecto.");
         System.out.println("[ServicioClienteController INF001] Configuración: IP=" + ipServer + ", Puerto=" + portServer + ", Operador=" + OPERATOR_NAME);
     }
 
     public void connectToServer() {
         System.out.println("[ServicioClienteController INF002] Conectando a servidor: IP=" + ipServer + ", Puerto=" + portServer);
         Platform.runLater(() -> {
-            if (lblStatus != null) lblStatus.setText("Conectando a " + ipServer + "...");
-            if (bttnNextTurn != null) bttnNextTurn.setDisable(true);
-            if (bttnCrearCuenta != null) bttnCrearCuenta.setDisable(true);
+            lblStatus.setText("Conectando a " + ipServer + "...");
+            bttnNextTurn.setDisable(true);
+            bttnCrearCuenta.setDisable(true);
         });
 
         Task<Boolean> connectTask = new Task<>() {
@@ -80,24 +75,27 @@ public class ServicioClienteController implements Initializable {
                 try {
                     socket = new Socket(ipServer, portServer);
                     outToServer = new ObjectOutputStream(socket.getOutputStream());
-                    outToServer.flush(); // Importante antes de crear ObjectInputStream
+                    outToServer.flush();
                     inFromServer = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
 
                     InfoData registroServicio = new InfoData();
                     registroServicio.setType(ClientTypes.SERVICIO);
                     registroServicio.setName(OPERATOR_NAME);
-                    try {
-                        registroServicio.setIp(InetAddress.getLocalHost().getHostAddress());
-                    } catch (Exception e) {
-                        registroServicio.setIp("Unknown"); // Fallback si no se puede obtener IP
-                    }
+                    registroServicio.setIp(InetAddress.getLocalHost().getHostAddress());
                     outToServer.writeObject(registroServicio);
                     outToServer.flush();
+
+                    // Leer la respuesta de registro del servidor
+                    Object serverResponse = inFromServer.readObject();
+                    if (serverResponse instanceof InfoData) {
+                        InfoData ack = (InfoData) serverResponse;
+                        System.out.println("[ServicioClienteController] Respuesta de registro del servidor: " + ack.getMessage());
+                    }
                     return true;
-                } catch (IOException e) {
-                    System.err.println("[ServicioClienteController ConnectTask] Error de conexión: " + e.getMessage());
-                    shutdownNetworkResources(); // Limpiar si falla la conexión
-                    throw e; // Para que se active onFailed
+                } catch (IOException | ClassNotFoundException e) {
+                    System.err.println("[ServicioClienteController ConnectTask] Error de conexión o lectura: " + e.getMessage());
+                    shutdownNetworkResources();
+                    throw e;
                 }
             }
         };
@@ -105,8 +103,9 @@ public class ServicioClienteController implements Initializable {
         connectTask.setOnSucceeded(event -> {
             if (Boolean.TRUE.equals(connectTask.getValue())) {
                 Platform.runLater(() -> {
-                    if (lblStatus != null) lblStatus.setText("✅ Conectado como: " + OPERATOR_NAME);
-                    if (bttnNextTurn != null) bttnNextTurn.setDisable(false);
+                    lblStatus.setText("✅ Conectado como: " + OPERATOR_NAME);
+                    bttnNextTurn.setDisable(false);
+                    bttnCrearCuenta.setDisable(true);
                 });
                 System.out.println("[ServicioClienteController INF003] Conexión exitosa al servidor.");
             }
@@ -114,12 +113,10 @@ public class ServicioClienteController implements Initializable {
 
         connectTask.setOnFailed(event -> {
             Throwable e = connectTask.getException();
-            Platform.runLater(() -> {
-                if (lblStatus != null) lblStatus.setText("⛔ Sin Conexión: " + (e != null ? e.getClass().getSimpleName() : "Error"));
-            });
+            Platform.runLater(() -> lblStatus.setText("⛔ Sin Conexión: " + (e != null ? e.getClass().getSimpleName() : "Error")));
             System.err.println("[ServicioClienteController E002] Falla en Task de conexión: " + (e != null ? e.getMessage() : "Desconocido"));
-            if (e != null) e.printStackTrace(); // Esto imprimirá el stack trace del error original
-            shutdownNetworkResources(); // Asegurar limpieza en caso de fallo
+            if (e != null) e.printStackTrace();
+            shutdownNetworkResources();
         });
         new Thread(connectTask).start();
     }
@@ -127,47 +124,53 @@ public class ServicioClienteController implements Initializable {
     @FXML
     void realizarCreacionCuenta(ActionEvent event) {
         if (ticketActual == null || ticketActual.getValue() == null) {
-            Platform.runLater(() -> { if (lblStatus != null) lblStatus.setText("Error: No hay ticket activo."); });
+            Platform.runLater(() -> lblStatus.setText("Error: No hay ticket activo para completar."));
             return;
         }
         if (txtfNombre.getText().isEmpty() || txtfApellidos.getText().isEmpty() || txtfDpi.getText().isEmpty()) {
-            Platform.runLater(() -> { if (lblStatus != null) lblStatus.setText("Error: Llenar todos los campos."); });
+            Platform.runLater(() -> lblStatus.setText("Error: Llenar todos los campos."));
             return;
         }
 
         this.ticketActual.setState(true);
         this.ticketActual.setTimestamp(LocalDateTime.now());
-        this.ticketActual.setOperator(this.OPERATOR_NAME); // Asegurar que el operador esté en el ticket
+        this.ticketActual.setOperator(this.OPERATOR_NAME);
 
         final Ticket ticketACompletar = this.ticketActual;
 
         Platform.runLater(() -> {
-            if (lblStatus != null) lblStatus.setText("Procesando ticket: " + ticketACompletar.getValue());
-            if (bttnCrearCuenta != null) bttnCrearCuenta.setDisable(true);
-            if (bttnNextTurn != null) bttnNextTurn.setDisable(true);
+            lblStatus.setText("Procesando creación de cuenta para: " + ticketACompletar.getValue());
+            bttnCrearCuenta.setDisable(true);
         });
 
-        Task<Void> taskCompletar = new Task<>() {
+        Task<InfoData> taskCompletar = new Task<>() { // Cambiado a Task<InfoData>
             @Override
-            protected Void call() throws Exception {
-                if (outToServer == null || socket == null || socket.isClosed()) {
-                    throw new IOException("No conectado al servidor o conexión cerrada.");
+            protected InfoData call() throws Exception { // Devuelve InfoData
+                if (outToServer == null || socket == null || socket.isClosed() || inFromServer == null) {
+                    throw new IOException("No conectado al servidor, stream cerrado o no inicializado.");
                 }
                 InfoData dataToSend = new InfoData();
                 dataToSend.setTickets(ticketACompletar);
                 dataToSend.setType(ClientTypes.SERVICIO);
                 dataToSend.setName(OPERATOR_NAME);
-                try {
-                    dataToSend.setIp(InetAddress.getLocalHost().getHostAddress());
-                } catch (Exception e) { dataToSend.setIp("Unknown"); }
+                dataToSend.setIp(InetAddress.getLocalHost().getHostAddress());
 
                 outToServer.writeObject(dataToSend);
                 outToServer.flush();
-                return null;
+
+                Object serverResponse = inFromServer.readObject(); // ESPERAR RESPUESTA
+                if (serverResponse instanceof InfoData) {
+                    return (InfoData) serverResponse;
+                } else {
+                    throw new IOException("Respuesta inesperada del servidor al completar ticket.");
+                }
             }
         };
 
         taskCompletar.setOnSucceeded(e -> {
+            InfoData completionResponse = taskCompletar.getValue();
+            System.out.println("[ServicioClienteController] Respuesta del servidor a la completación de " + ticketACompletar.getValue() + ": " + (completionResponse != null ? completionResponse.getMessage() : "Sin mensaje específico"));
+
             LocalDateTime timeLog = LocalDateTime.now();
             String nombre = txtfNombre.getText().trim();
             String apellidos = txtfApellidos.getText().trim();
@@ -183,28 +186,31 @@ public class ServicioClienteController implements Initializable {
                 save.newLine();
             } catch (IOException ioex) {
                 System.err.println("[ServicioClienteController E003] Error escribiendo log: " + ioex.getMessage());
-                Platform.runLater(() -> { if (lblStatus != null) lblStatus.setText("⛔ Error guardando log: " + ioex.getMessage()); });
+                Platform.runLater(() -> lblStatus.setText("⛔ Error guardando log: " + ioex.getMessage()));
             }
 
             Platform.runLater(() -> {
-                if (lblStatus != null) lblStatus.setText("Ticket " + ticketACompletar.getValue() + " completado.");
-                if (lblTurnoActual != null) lblTurnoActual.setText("N/A");
-                if (txtfNombre != null) txtfNombre.clear();
-                if (txtfApellidos != null) txtfApellidos.clear();
-                if (txtfDpi != null) txtfDpi.clear();
-                if (bttnNextTurn != null) bttnNextTurn.setDisable(false);
+                lblStatus.setText("Ticket " + ticketACompletar.getValue() + " procesado.");
+                lblTurnoActual.setText("N/A");
+                txtfNombre.clear();
+                txtfApellidos.clear();
+                txtfDpi.clear();
+                bttnCrearCuenta.setDisable(true);
+                bttnNextTurn.setDisable(false);
             });
-            this.ticketActual = null; // Limpiar ticket actual
-            System.out.println("[ServicioClienteController INF004] Ticket " + ticketACompletar.getValue() + " completado.");
+            this.ticketActual = null;
+            System.out.println("[ServicioClienteController INF004] Ticket " + ticketACompletar.getValue() + " completado localmente y confirmación recibida.");
         });
 
         taskCompletar.setOnFailed(e -> {
             Throwable ex = taskCompletar.getException();
             Platform.runLater(() -> {
-                if (lblStatus != null) lblStatus.setText("⛔ Error al completar ticket " + ticketACompletar.getValue());
-                if (bttnCrearCuenta != null) bttnCrearCuenta.setDisable(false); // Habilitar para reintentar
-                if (bttnNextTurn != null) bttnNextTurn.setDisable(false);
+                lblStatus.setText("⛔ Error al enviar completación de " + ticketACompletar.getValue());
+                bttnCrearCuenta.setDisable(false);
             });
+            if(this.ticketActual != null) {
+                this.ticketActual.setState(false);
+            }
             System.err.println("[ServicioClienteController E005] Falló envío ticket completado: " + (ex != null ? ex.getMessage() : "Error"));
             if (ex != null) ex.printStackTrace();
             if (ex instanceof IOException) {
@@ -216,11 +222,16 @@ public class ServicioClienteController implements Initializable {
 
     @FXML
     void siguienteTurno(ActionEvent event) {
+        if (this.ticketActual != null) {
+            Platform.runLater(() -> lblStatus.setText("Complete el ticket actual ("+this.ticketActual.getValue()+") antes de solicitar uno nuevo."));
+            return;
+        }
+
         Platform.runLater(() -> {
-            if (lblStatus != null) lblStatus.setText("Solicitando siguiente ticket...");
-            if (bttnNextTurn != null) bttnNextTurn.setDisable(true);
-            if (bttnCrearCuenta != null) bttnCrearCuenta.setDisable(true); // Mientras se busca nuevo ticket
-            if (lblTurnoActual != null) lblTurnoActual.setText("Buscando...");
+            lblStatus.setText("Solicitando siguiente ticket...");
+            bttnNextTurn.setDisable(true);
+            bttnCrearCuenta.setDisable(true);
+            lblTurnoActual.setText("Buscando...");
         });
 
         Task<Ticket> taskPedirTicket = new Task<>() {
@@ -230,34 +241,21 @@ public class ServicioClienteController implements Initializable {
                     throw new IOException("No conectado al servidor o conexión cerrada.");
                 }
 
-                Ticket ticketDeSolicitud = new Ticket(null, TicketTypes.SERVICIO); // Sin valor, solo tipo
+                Ticket ticketDeSolicitud = new Ticket(null, TicketTypes.SERVICIO);
                 InfoData requestData = new InfoData();
                 requestData.setTickets(ticketDeSolicitud);
                 requestData.setType(ClientTypes.SERVICIO);
-                requestData.setName(OPERATOR_NAME); // Para que el servidor sepa quién pide
-                try {
-                    requestData.setIp(InetAddress.getLocalHost().getHostAddress());
-                } catch (Exception e) { requestData.setIp("Unknown"); }
+                requestData.setName(OPERATOR_NAME);
+                requestData.setIp(InetAddress.getLocalHost().getHostAddress());
 
                 outToServer.writeObject(requestData);
                 outToServer.flush();
 
-                Object response = inFromServer.readObject(); // Espera la respuesta directa
+                Object response = inFromServer.readObject();
                 if (response instanceof InfoData) {
                     InfoData dataResponse = (InfoData) response;
-                    if (dataResponse.getTickets() != null) {
-                        Ticket receivedTicket = dataResponse.getTickets();
-                        // Si el servidor no asigna el operador en el ticket, lo hacemos aquí
-                        if (receivedTicket.getOperator() == null || receivedTicket.getOperator().isEmpty()) {
-                            receivedTicket.setOperator(OPERATOR_NAME);
-                        }
-                        return receivedTicket;
-                    } else {
-                        if (dataResponse.getMessage() != null) {
-                            System.out.println("[ServicioClienteController] Mensaje del servidor: " + dataResponse.getMessage());
-                        }
-                        return null; // No se asignó ticket
-                    }
+                    System.out.println("[ServicioClienteController] Respuesta del servidor (siguienteTurno): " + dataResponse.getMessage());
+                    return dataResponse.getTickets();
                 } else {
                     throw new IOException("Respuesta inesperada del servidor: " + response.getClass().getName());
                 }
@@ -265,37 +263,46 @@ public class ServicioClienteController implements Initializable {
         };
 
         taskPedirTicket.setOnSucceeded(e -> {
-            Ticket ticketAsignado = taskPedirTicket.getValue();
-            this.ticketActual = ticketAsignado;
+            Ticket ticketRecibidoDelServidor = taskPedirTicket.getValue();
+            this.ticketActual = ticketRecibidoDelServidor;
 
             if (this.ticketActual != null && this.ticketActual.getValue() != null) {
                 Platform.runLater(() -> {
-                    if (lblTurnoActual != null) lblTurnoActual.setText(this.ticketActual.getValue());
-                    if (lblStatus != null) lblStatus.setText("Atendiendo: " + this.ticketActual.getValue() + " (Op: " + this.ticketActual.getOperator() + ")");
-                    if (bttnCrearCuenta != null) bttnCrearCuenta.setDisable(false); // Habilitar para realizar la acción
-                    if (txtfNombre != null) txtfNombre.clear();
-                    if (txtfApellidos != null) txtfApellidos.clear();
-                    if (txtfDpi != null) txtfDpi.clear();
-                    if (txtfNombre != null) txtfNombre.requestFocus();
+                    lblTurnoActual.setText(this.ticketActual.getValue());
+                    String statusMsg = "Atendiendo: " + this.ticketActual.getValue();
+                    if(this.ticketActual.getOperator() != null && !this.ticketActual.getOperator().isEmpty()){
+                        statusMsg += " (Op: " + this.ticketActual.getOperator() + ")";
+                    }
+                    lblStatus.setText(statusMsg);
+                    bttnCrearCuenta.setDisable(false);
+                    bttnNextTurn.setDisable(true);
+
+                    txtfNombre.clear();
+                    txtfApellidos.clear();
+                    txtfDpi.clear();
+                    txtfNombre.requestFocus();
                 });
-                System.out.println("[ServicioClienteController INF005] Nuevo ticket asignado: " + this.ticketActual);
+                System.out.println("[ServicioClienteController INF005] Ticket asignado/confirmado por servidor: " + this.ticketActual);
             } else {
                 Platform.runLater(() -> {
-                    if (lblTurnoActual != null) lblTurnoActual.setText("N/A");
-                    if (lblStatus != null) lblStatus.setText("No hay tickets disponibles o error.");
+                    lblTurnoActual.setText("N/A");
+                    // lblStatus.setText("No hay tickets disponibles o error al obtener.");
+                    bttnCrearCuenta.setDisable(true);
+                    bttnNextTurn.setDisable(false);
                 });
-                System.out.println("[ServicioClienteController INF006] No se recibió nuevo ticket válido o no hay tickets.");
+                this.ticketActual = null;
+                System.out.println("[ServicioClienteController INF006] No se recibió nuevo ticket o no hay disponibles.");
             }
-            Platform.runLater(() -> { if (bttnNextTurn != null) bttnNextTurn.setDisable(false); }); // Siempre re-habilitar
         });
 
         taskPedirTicket.setOnFailed(e -> {
             this.ticketActual = null;
             Throwable ex = taskPedirTicket.getException();
             Platform.runLater(() -> {
-                if (lblTurnoActual != null) lblTurnoActual.setText("N/A");
-                if (lblStatus != null) lblStatus.setText("⛔ Error al obtener siguiente ticket.");
-                if (bttnNextTurn != null) bttnNextTurn.setDisable(false); // Re-habilitar
+                lblTurnoActual.setText("N/A");
+                lblStatus.setText("⛔ Error al obtener siguiente ticket.");
+                bttnCrearCuenta.setDisable(true);
+                bttnNextTurn.setDisable(false);
             });
             System.err.println("[ServicioClienteController E006] Falló obtención siguiente ticket: " + (ex != null ? ex.getMessage() : "Error"));
             if (ex != null) ex.printStackTrace();
@@ -309,16 +316,16 @@ public class ServicioClienteController implements Initializable {
     private void handleDisconnectionError(String contextMessage) {
         System.err.println("[ServicioClienteController] Error de desconexión: " + contextMessage);
         Platform.runLater(() -> {
-            if (lblStatus != null) lblStatus.setText("⛔ Desconexión. Revise Servidor.");
-            if (bttnNextTurn != null) bttnNextTurn.setDisable(true);
-            if (bttnCrearCuenta != null) bttnCrearCuenta.setDisable(true);
-            if (lblTurnoActual != null) lblTurnoActual.setText("N/A");
+            lblStatus.setText("⛔ Desconexión. Revise Servidor.");
+            bttnNextTurn.setDisable(true);
+            bttnCrearCuenta.setDisable(true);
+            lblTurnoActual.setText("N/A");
         });
-        shutdownNetworkResources(); // Cierra recursos actuales
-        // Aquí podrías implementar lógica para reintentar conexión o habilitar un botón de reconexión.
+        shutdownNetworkResources();
+        this.ticketActual = null;
     }
 
-    public void shutdown() { // Llamado al cerrar la aplicación
+    public void shutdown() {
         System.out.println("[ServicioClienteController] Iniciando cierre (shutdown)...");
         shutdownNetworkResources();
         System.out.println("[ServicioClienteController] Aplicación terminada.");
@@ -328,13 +335,13 @@ public class ServicioClienteController implements Initializable {
         System.out.println("[ServicioClienteController] Cerrando recursos de red...");
         try {
             if (outToServer != null) {
-                try { outToServer.close(); } catch (IOException e) { /* ignorar */ }
+                try { outToServer.close(); } catch (IOException ex) { /* ignorable */ }
             }
             if (inFromServer != null) {
-                try { inFromServer.close(); } catch (IOException e) { /* ignorar */ }
+                try { inFromServer.close(); } catch (IOException ex) { /* ignorable */ }
             }
             if (socket != null && !socket.isClosed()) {
-                try { socket.close(); } catch (IOException e) { /* ignorar */ }
+                try { socket.close(); } catch (IOException ex) { /* ignorable */ }
             }
         } finally {
             outToServer = null;

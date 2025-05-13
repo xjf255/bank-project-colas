@@ -6,13 +6,13 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class HelloApplication extends Application {
-    private HelloController controller; // Guardar referencia al controlador
+    private HelloController controller;
 
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load());
-        controller = fxmlLoader.getController(); // Obtener el controlador
+        controller = fxmlLoader.getController();
 
         stage.setTitle("Pantalla de Turnos del Banco");
         stage.setScene(scene);
@@ -22,9 +22,8 @@ public class HelloApplication extends Application {
 
     @Override
     public void stop() throws Exception {
-        // Este método se llama cuando la aplicación JavaFX se cierra
         if (controller != null) {
-            controller.stop(); // Llama al método stop de tu controlador
+            controller.stop();
         }
         super.stop();
     }
