@@ -5,22 +5,23 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Ticket implements Serializable {
+    private static final long serialVersionUID = 20240512L; // Buena práctica poner un serialVersionUID
     private String value;
     private TicketTypes type;
-    private boolean state;
+    private boolean state; // false = pendiente/llamado, true = completado
     private String operator;
-    private LocalDateTime timestamp;    //CREO
-    private LocalDateTime attendTime; // ATENDIO
+    private LocalDateTime timestamp;    // Hora de CREACION del ticket
+    private LocalDateTime attendTime; // Hora en que fue ATENDIDO/ASIGNADO por un operador
 
     public Ticket() {
-        this.timestamp = LocalDateTime.now();
+        this.timestamp = LocalDateTime.now(); // Hora de creación
+        this.state = false; // Por defecto, pendiente
     }
 
     public Ticket(String value, TicketTypes type) {
-        this();
+        this(); // Llama al constructor por defecto para establecer el timestamp y estado inicial
         this.value = value;
         this.type = type;
-        this.state = false;
     }
 
     public String getValue() {
@@ -53,7 +54,9 @@ public class Ticket implements Serializable {
 
     public void setOperator(String operator) {
         this.operator = operator;
-        if (operator != null && attendTime == null) {
+        // Si se asigna un operador y el ticket aún no tiene un attendTime,
+        // se establece la hora actual como la hora de atención/asignación.
+        if (operator != null && this.attendTime == null) {
             this.attendTime = LocalDateTime.now();
         }
     }
@@ -66,28 +69,42 @@ public class Ticket implements Serializable {
         this.timestamp = timestamp;
     }
 
+    public LocalDateTime getAttendTime() {
+        return attendTime;
+    }
+
+    public void setAttendTime(LocalDateTime attendTime) {
+        this.attendTime = attendTime;
+    }
+
     public String getFormattedTimestamp() {
         if (timestamp == null) return "N/A";
         return timestamp.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
-    @Override
-    public String toString() {
-        return "Ticket [" + value + ", tipo=" + type +
-                ", estado=" + (state ? "completado" : "pendiente") +
-                ", operador=" + (operator != null ? operator : "ninguno") +
-                ", creado=" + getFormattedTimestamp() + "]";
+    public String getFormattedAttendTime() {
+        if (attendTime == null) return "N/A";
+        return attendTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
-    /**
-     * Para comparaciones de igualdad basadas en el valor del ticket
-     */
+    @Override
+    public String toString() {
+        return "Ticket{" +
+                "value='" + value + '\'' +
+                ", type=" + type +
+                ", state=" + (state ? "completado" : "pendiente/atendiendo") +
+                ", operator='" + (operator != null ? operator : "N/A") + '\'' +
+                ", timestamp=" + getFormattedTimestamp() +
+                ", attendTime=" + getFormattedAttendTime() +
+                '}';
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
-        Ticket other = (Ticket) obj;
-        return value != null && value.equals(other.value);
+        Ticket ticket = (Ticket) obj;
+        return value != null ? value.equals(ticket.value) : ticket.value == null;
     }
 
     @Override

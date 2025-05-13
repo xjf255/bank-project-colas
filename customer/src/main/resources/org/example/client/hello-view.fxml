@@ -9,12 +9,26 @@
       fx:controller="org.example.client.HelloController"
       spacing="30"
       alignment="CENTER"
-      style="-fx-padding: 30; -fx-background-color: #f4f4f4;">
+      style="-fx-padding: 40; -fx-background-color: #f4f4f4;">
 
-    <Label fx:id="welcomeLabel" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+    <Label fx:id="welcomeLabel" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
 
-    <HBox spacing="50" alignment="CENTER">
-        <Button fx:id="cajaButton" onAction="#handleCaja"/>
-        <Button fx:id="servicioButton" onAction="#handleServicio"/>
-    </HBox>
+    <HBox spacing="100" alignment="CENTER">
+        <Button fx:id="cajaButton" onAction="#handleCaja"
+                style="-fx-font-size: 28px; -fx-font-weight: bold;
+                       -fx-min-width: 250px; -fx-min-height: 250px;
+                       -fx-max-width: 250px; -fx-max-height: 250px;
+                       -fx-background-color: #3498db; -fx-text-fill: white;
+                       -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, 0, 7);"
+                text="CAJA"/>
+
+        <Button fx:id="servicioButton" onAction="#handleServicio"
+                style="-fx-font-size: 28px; -fx-font-weight: bold;
+                       -fx-min-width: 250px; -fx-min-height: 250px;
+                       -fx-max-width: 250px; -fx-max-height: 250px;
+                       -fx-background-color: #2ecc71; -fx-text-fill: white;
+                       -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 15, 0, 0, 7);"
+                text="SERVICIO&#10;AL CLIENTE"/> </HBox>
+
+    <Label fx:id="statusLabel" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
 </VBox>
