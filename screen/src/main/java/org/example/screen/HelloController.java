@@ -27,9 +27,12 @@ import org.example.shared.PropertiesInfo;
 import org.example.shared.Ticket;
 
 public class HelloController {
-    @FXML private GridPane mainContainer;
-    @FXML private VBox ticketsContainer;
-    @FXML private VBox ventanillasContainer;
+    @FXML
+    private GridPane mainContainer;
+    @FXML
+    private VBox ticketsContainer;
+    @FXML
+    private VBox ventanillasContainer;
 
     private static final int MAX_ULTIMOS_LLAMADOS = 6;
     private final ObservableList<Ticket> ultimosLlamados = FXCollections.observableArrayList();
@@ -170,8 +173,7 @@ public class HelloController {
                 System.err.println("[ERROR] Socket: " + e.getMessage());
                 Platform.runLater(() -> mostrarError("ERR: SOCKET"));
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             if (isNetworkClientRunning) {
                 System.err.println("[ERROR] Comunicación: " + e.getMessage());
                 e.printStackTrace();
@@ -334,9 +336,15 @@ public class HelloController {
         isNetworkClientRunning = false; // Señal para que el hilo listener termine
         try {
             // Cerrar streams primero, luego socket
-            if (outToServer != null) try { outToServer.close(); } catch (IOException e) { /* ignorable */ }
-            if (inFromServer != null) try { inFromServer.close(); } catch (IOException e) { /* ignorable */ }
-            if (socket != null && !socket.isClosed()) try { socket.close(); } catch (IOException e) { /* ignorable */ }
+            if (outToServer != null) try {
+                outToServer.close();
+            } catch (IOException e) { /* ignorable */ }
+            if (inFromServer != null) try {
+                inFromServer.close();
+            } catch (IOException e) { /* ignorable */ }
+            if (socket != null && !socket.isClosed()) try {
+                socket.close();
+            } catch (IOException e) { /* ignorable */ }
         } catch (Exception e) { // Un catch más genérico por si acaso
             System.err.println("[ERROR] Al cerrar conexiones: " + e.getMessage());
         }

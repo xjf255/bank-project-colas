@@ -1,7 +1,17 @@
 package org.example.server.Model;
-import org.example.shared.*;
+
+import org.example.shared.ClientTypes;
+import org.example.shared.InfoData;
+import org.example.shared.Ticket;
+import org.example.shared.TicketTypes;
 import org.javatuples.Triplet;
-import java.io.*;
+
+import java.io.BufferedInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalDateTime;
@@ -180,12 +190,7 @@ public class Server {
             if (clientName != null) {
                 clients.remove(clientName);
                 clientSockets.remove(clientName);
-                ObjectOutputStream removedOOS = clientOutputStreams.remove(clientName);
-                if (removedOOS != null) {
-                    try {
-                    } catch (Exception e) {
-                    }
-                }
+                clientOutputStreams.remove(clientName);
                 addLog("Cliente '" + clientName + "' eliminado de las listas de activos.");
             }
 
@@ -264,9 +269,16 @@ public class Server {
     public InfoData processClientData(InfoData infoFromClient, String clientNameContext) {
         if (infoFromClient == null) return null;
 
-        addLog("Procesando datos de '" + clientNameContext + "'. Tipo: " + infoFromClient.getType() +
-                (infoFromClient.getTickets() != null ? ", Ticket: " + infoFromClient.getTickets().getValue() : "") +
-                ", Mensaje: " + infoFromClient.getMessage());
+        String ticketInfoForLog = "";
+        if (infoFromClient.getTickets() != null) {
+            if (infoFromClient.getTickets().getValue() != null) {
+                ticketInfoForLog = ", Ticket: " + infoFromClient.getTickets().getValue();
+            } else {
+                ticketInfoForLog = ", Solicitud de Siguiente Ticket (tipo: " + infoFromClient.getTickets().getType() + ")";
+            }
+        }
+        addLog("Procesando datos de '" + clientNameContext + "'. Tipo Cliente: " + infoFromClient.getType() +
+                ticketInfoForLog + ", Mensaje: " + infoFromClient.getMessage());
 
         InfoData responseToClient = new InfoData();
         responseToClient.setName(SERVER_IDENTIFIER);
@@ -294,13 +306,56 @@ public class Server {
         }
 
         Ticket ticketDataFromClient = infoFromClient.getTickets();
+
         if (ticketDataFromClient != null) {
-            if (infoFromClient.getType() == ClientTypes.CAJA || infoFromClient.getType() == ClientTypes.SERVICIO) {
-                boolean actionSuccess = processOperatorTicketAction(infoFromClient, ticketDataFromClient, clientNameContext);
-                if (actionSuccess) {
-                    responseToClient.setMessage("Acción sobre ticket '" + ticketDataFromClient.getValue() + "' procesada.");
+            if (ticketDataFromClient.getValue() == null &&
+                    (infoFromClient.getType() == ClientTypes.CAJA || infoFromClient.getType() == ClientTypes.SERVICIO)) {
+
+                addLog("Operador '" + clientNameContext + "' (Tipo Cliente: " + infoFromClient.getType() +
+                        ") solicita el siguiente ticket de tipo: " + ticketDataFromClient.getType());
+
+                List<Ticket> relevantList = (ticketDataFromClient.getType() == TicketTypes.CAJA) ? tellerList : serviceList;
+                Ticket ticketToAssign = null;
+
+                synchronized (relevantList) {
+                    for (Ticket ticketInQueue : relevantList) {
+                        if (ticketInQueue.getOperator() == null || ticketInQueue.getOperator().isEmpty()) {
+                            ticketInQueue.setOperator(clientNameContext);
+                            ticketInQueue.setTimestamp(LocalDateTime.now());
+                            ticketInQueue.setState(false);
+                            ticketToAssign = ticketInQueue;
+                            break;
+                        }
+                    }
+                }
+
+                if (ticketToAssign != null) {
+                    responseToClient.setTickets(ticketToAssign);
+                    responseToClient.setMessage("Ticket '" + ticketToAssign.getValue() + "' asignado a " + clientNameContext + ".");
+                    addLog("Ticket '" + ticketToAssign.getValue() + "' (Tipo: " + ticketToAssign.getType() +
+                            ") asignado al operador '" + clientNameContext + "'.");
+                    broadcastTicketUpdate();
                 } else {
-                    responseToClient.setMessage("No se pudo procesar la acción sobre el ticket '" + ticketDataFromClient.getValue() + "' (ej. no encontrado).");
+                    responseToClient.setMessage("No hay tickets disponibles en la cola para el tipo " + ticketDataFromClient.getType() + ".");
+                    addLog("No hay tickets disponibles para asignar a '" + clientNameContext +
+                            "' (solicitó tipo: " + ticketDataFromClient.getType() + ").");
+                }
+                return responseToClient;
+
+            } else if (ticketDataFromClient.getValue() != null &&
+                    (infoFromClient.getType() == ClientTypes.CAJA || infoFromClient.getType() == ClientTypes.SERVICIO)) {
+
+                addLog("Operador '" + clientNameContext + "' (Tipo Cliente: " + infoFromClient.getType() +
+                        ") actuando sobre ticket específico: '" + ticketDataFromClient.getValue() +
+                        "' (Estado enviado por cliente: " + ticketDataFromClient.isState() + ").");
+
+                boolean actionSuccess = processOperatorTicketAction(infoFromClient, ticketDataFromClient, clientNameContext);
+
+                if (actionSuccess) {
+                    responseToClient.setMessage("Acción sobre ticket '" + ticketDataFromClient.getValue() + "' procesada exitosamente.");
+                } else {
+                    responseToClient.setMessage("No se pudo procesar la acción sobre el ticket '" +
+                            ticketDataFromClient.getValue() + "' (ej. no encontrado, ya procesado, o estado incorrecto).");
                 }
                 if (ticketDataFromClient.getType() == TicketTypes.CAJA) {
                     synchronized (tellerList) {
@@ -312,17 +367,11 @@ public class Server {
                     }
                 }
                 return responseToClient;
-            } else if (ticketDataFromClient.getValue() == null && infoFromClient.getType() != ClientTypes.GENERATOR) {
-                Ticket newTicketGenerated = createNewServerGeneratedTicket(ticketDataFromClient.getType());
-                responseToClient.setTickets(newTicketGenerated);
-                responseToClient.setMessage("Nuevo ticket '" + newTicketGenerated.getValue() + "' generado por el servidor.");
-                addLog("Ticket '" + newTicketGenerated.getValue() + "' generado por el servidor a petición de '" + clientNameContext + "'.");
-                broadcastTicketUpdate();
-                return responseToClient;
             }
         }
 
-        responseToClient.setMessage("Solicitud recibida y procesada genéricamente para '" + clientNameContext + "'.");
+        responseToClient.setMessage("Solicitud de '" + clientNameContext + "' recibida. No se realizó acción específica de ticket o solicitud no reconocida.");
+        addLog("Solicitud genérica o no reconocida de '" + clientNameContext + "' procesada. Mensaje: " + infoFromClient.getMessage());
         return responseToClient;
     }
 
@@ -331,7 +380,7 @@ public class Server {
         Ticket ticketInServerList = null;
 
         for (Ticket t : relevantList) {
-            if (t.getValue().equals(ticketFromOperator.getValue())) {
+            if (t.getValue() != null && t.getValue().equals(ticketFromOperator.getValue())) {
                 ticketInServerList = t;
                 break;
             }
@@ -340,24 +389,20 @@ public class Server {
         if (ticketInServerList != null) {
             if (ticketFromOperator.isState()) {
                 relevantList.remove(ticketInServerList);
-                addLog("Ticket '" + ticketInServerList.getValue() + "' completado por operador '" + operatorName + "' y removido de la lista " + ticketFromOperator.getType() + ".");
+                addLog("Ticket '" + ticketInServerList.getValue() + "' (Tipo: " + ticketInServerList.getType() +
+                        ") completado por operador '" + operatorName + "' y removido de la lista.");
             } else {
-                String assignedDesk;
-                if (operatorInfo.getType() == ClientTypes.CAJA) {
-                    assignedDesk = "ventanilla 1";
-                } else if (operatorInfo.getType() == ClientTypes.SERVICIO) {
-                    assignedDesk = "ventanilla 2";
-                } else {
-                    assignedDesk = operatorName;
-                    addLog("Advertencia: Tipo de operador desconocido (" + operatorInfo.getType() + ") en processOperatorTicketAction para '" + operatorName + "'. Usando nombre de cliente como operador.");
-                }
-                ticketInServerList.setOperator(assignedDesk);
-                addLog("Ticket '" + ticketInServerList.getValue() + "' asignado/llamado por operador '" + operatorName + "' a " + assignedDesk + ".");
+                ticketInServerList.setOperator(operatorName);
+                ticketInServerList.setTimestamp(LocalDateTime.now());
+                ticketInServerList.setState(false);
+                addLog("Acción (no completar) sobre ticket '" + ticketInServerList.getValue() +
+                        "' por operador '" + operatorName + "'. Operador asignado/confirmado.");
             }
             broadcastTicketUpdate();
             return true;
         } else {
-            addLog("Operador '" + operatorName + "' intentó actuar sobre ticket '" + ticketFromOperator.getValue() + "' (Tipo: " + ticketFromOperator.getType() + ") pero no fue encontrado.");
+            addLog("Operador '" + operatorName + "' intentó actuar sobre ticket '" + ticketFromOperator.getValue() +
+                    "' (Tipo: " + ticketFromOperator.getType() + ") pero no fue encontrado en la lista " + ticketFromOperator.getType() + ".");
             return false;
         }
     }
@@ -553,13 +598,22 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        int serverPortNum = 12345;
+        int serverPortNum = 5000;
         try {
-            PropertiesInfo propsInfo = new PropertiesInfo();
-            Properties appProps = propsInfo.getProperties();
-            serverPortNum = Integer.parseInt(appProps.getProperty("server.port", "12345"));
+            Properties appProps = new Properties();
+            try (InputStream input = Server.class.getClassLoader().getResourceAsStream("config.properties")) {
+                if (input == null) {
+                    System.out.println("ADVERTENCIA: No se pudo encontrar el archivo config.properties. Usando puerto por defecto: " + serverPortNum);
+                } else {
+                    appProps.load(input);
+                    serverPortNum = Integer.parseInt(appProps.getProperty("server.port", "5000"));
+                }
+            } catch (IOException |NumberFormatException e) {
+                System.err.println("ADVERTENCIA: No se pudo cargar la configuración del puerto desde el archivo de propiedades. " +
+                        "Usando puerto por defecto: " + serverPortNum + ". Error: " + e.getMessage());
+            }
         } catch (Exception e) {
-            System.err.println("ADVERTENCIA: No se pudo cargar la configuración del puerto desde el archivo de propiedades. " +
+            System.err.println("ADVERTENCIA: Error general al intentar cargar configuración. " +
                     "Usando puerto por defecto: " + serverPortNum + ". Error: " + e.getMessage());
         }
 
