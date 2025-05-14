@@ -6,6 +6,7 @@ module org.example.service {
     requires com.dlsc.formsfx;
     requires net.synedra.validatorfx;
     requires org.kordamp.bootstrapfx.core;
+    requires org.example.sharedmodel;
 
     opens org.example.service to javafx.fxml;
     exports org.example.service;

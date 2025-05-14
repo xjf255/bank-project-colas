@@ -1,16 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.VBox?>
-
 <?import javafx.scene.control.Button?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.client.HelloController">
-  <padding>
-    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-  </padding>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.image.Image?> <?import javafx.scene.image.ImageView?> <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-  <Label fx:id="welcomeText"/>
-  <Button text="Hello!" onAction="#onHelloButtonClick"/>
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="org.example.client.HelloController"
+      spacing="25" alignment="CENTER"
+      style="-fx-padding: 40; -fx-background-color: #2C3E50; -fx-border-color: #3B536D; -fx-border-width: 1; -fx-border-radius: 8; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0.6, 0, 0);"> <ImageView fx:id="logoImageView" fitHeight="100.0" fitWidth="250.0" pickOnBounds="true" preserveRatio="true">
+    <image>
+        <Image url="@images/Gemini_Generated_Image_duzmsiduzmsiduzm.png"/>
+    </image>
+    <VBox.margin>
+        <Insets bottom="15.0" /> </VBox.margin>
+</ImageView>
+
+    <Label fx:id="welcomeLabel"
+           text="BIENVENIDO/A"
+           style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #FFFFFF;"> <font>
+        <Font name="System" size="32.0" />
+    </font>
+    </Label>
+
+    <VBox spacing="20" alignment="CENTER" style="-fx-padding: 25 0 25 0;"> <Button fx:id="cajaButton" onAction="#handleCaja"
+                                                                                   text="Generar Ticket de Caja"
+                                                                                   style="-fx-background-color: #58A6FF; -fx-text-fill: #FFFFFF; -fx-font-family: System; -fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 16 32; -fx-background-radius: 28; -fx-pref-width: 360; -fx-effect: dropshadow(gaussian, rgba(88,166,255,0.35), 9, 0.45, 0, 2.5);"/> <Button fx:id="servicioButton" onAction="#handleServicio"
+                                                                                                                                                                                                                                                                                                                                                                               text="Generar Ticket de Servicio"
+                                                                                                                                                                                                                                                                                                                                                                               style="-fx-background-color: #82B1FF; -fx-text-fill: #1D2A35; -fx-font-family: System; -fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 16 32; -fx-background-radius: 28; -fx-pref-width: 360; -fx-effect: dropshadow(gaussian, rgba(130,177,255,0.35), 9, 0.45, 0, 2.5);"/> </VBox>
+
+    <Separator style="-fx-padding: 12 0 12 0; -fx-background-color: #5A7E9A; -fx-max-width: 360;"/> <Label text="Último Ticket Generado:"
+                                                                                                           style="-fx-font-size: 18px; -fx-text-fill: #EAECEE; -fx-font-weight: normal;"> <font>
+        <Font name="System" size="18.0" />
+    </font>
+    </Label>
+
+    <Label fx:id="ticketDisplayLabel"
+           text="Seleccione un tipo de ticket para generar..."
+           wrapText="true"
+           maxWidth="380" alignment="TOP_LEFT"
+           style="-fx-font-family: 'Consolas', 'Courier New', monospace; -fx-font-size: 14px; -fx-background-color: #212529; -fx-text-fill: #F8F9FA; -fx-padding: 16px; -fx-background-radius: 8px; -fx-border-radius: 8px; -fx-min-height: 140px;"> </Label>
+
+    <Label fx:id="statusLabel" text="Estado: Inicializando..."
+           style="-fx-font-size: 15px; -fx-text-fill: #EAECEE; -fx-font-weight: normal;"> <VBox.margin>
+        <Insets top="12.0" />
+    </VBox.margin>
+    </Label>
+
+    <VBox.margin>
+        <Insets bottom="25.0" /> </VBox.margin>
 </VBox>
