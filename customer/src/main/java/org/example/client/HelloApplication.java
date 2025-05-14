@@ -6,39 +6,55 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-public class HelloApplication extends Application {
+import java.io.IOException;
+import java.net.URL;
 
-    private HelloController controller; // Guardar referencia al controlador
+public class HelloApplication extends Application {
+    private HelloController controller; // Para llamar a stop()
 
     @Override
     public void start(Stage primaryStage) {
         try {
-            // Asegúrate que la ruta al FXML sea correcta. Si está en resources/org/example/client/
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("hello-view.fxml"));
-            // Si está directamente en resources: FXMLLoader loader = new FXMLLoader(getClass().getResource("/hello-view.fxml"));
+            // Asumiendo que hello-view.fxml está en src/main/resources/org/example/client/
+            URL fxmlUrl = getClass().getResource("hello-view.fxml");
+            if (fxmlUrl == null) {
+                // Intenta desde la raíz de resources si no se encuentra en el paquete
+                System.err.println("Advertencia: FXML 'hello-view.fxml' no encontrado en el paquete. Intentando desde la raíz de resources...");
+                fxmlUrl = getClass().getResource("/hello-view.fxml");
+            }
 
+            if (fxmlUrl == null) {
+                System.err.println("Error crítico: No se pudo encontrar el archivo FXML 'hello-view.fxml'.");
+                System.err.println("Verifica la ubicación del archivo y que el proyecto haya sido limpiado y reconstruido.");
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
-            controller = loader.getController(); // Obtener el controlador
+            controller = loader.getController(); // Obtener instancia del controlador
 
-            Scene scene = new Scene(root, 500, 450); // Un poco más de alto para el label de estado
-            primaryStage.setTitle("Sistema de Tickets - Generador Intelilly");
+            // Puedes ajustar este tamaño base si es necesario
+            Scene scene = new Scene(root, 600, 750);
+            primaryStage.setTitle("Generador de Tickets de Cliente");
             primaryStage.setScene(scene);
+            primaryStage.setMaximized(true); // Iniciar maximizado
+
+            primaryStage.setOnCloseRequest(event -> {
+                System.out.println("Cerrando aplicación cliente...");
+                if (controller != null) {
+                    controller.stop(); // Llamar al método stop del controlador
+                }
+            });
+
             primaryStage.show();
 
+        } catch (IOException e) {
+            System.err.println("Error al cargar la interfaz de cliente (FXML):");
+            e.printStackTrace();
         } catch (Exception e) {
-            System.err.println("Error al iniciar la aplicación cliente generador:");
+            System.err.println("Error inesperado en la aplicación cliente:");
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void stop() throws Exception {
-        // Este método se llama cuando la aplicación JavaFX se cierra
-        if (controller != null) {
-            controller.stop(); // Llama al método stop de tu controlador
-        }
-        super.stop();
-        System.out.println("Aplicación cliente generador detenida.");
     }
 
     public static void main(String[] args) {

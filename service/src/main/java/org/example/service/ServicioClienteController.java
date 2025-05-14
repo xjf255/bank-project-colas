@@ -56,7 +56,7 @@ public class ServicioClienteController implements Initializable {
     }
 
     public void loadConfigServer() {
-        ipServer = "localhost"; // Cambia si tu servidor está en otra IP
+        ipServer = "25.53.36.80"; // Cambia si tu servidor está en otra IP
         portServer = 5000;
         System.out.println("[ServicioClienteController INF001] Configuración: IP=" + ipServer + ", Puerto=" + portServer + ", Operador=" + OPERATOR_NAME);
     }
